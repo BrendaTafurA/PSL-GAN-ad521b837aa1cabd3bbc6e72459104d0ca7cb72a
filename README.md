@@ -1,2 +1,2 @@
-# PSL-GAN
-Generative Adversarial Graph Convolutional Networks for Peruvian Sign Language Synthesis
+# PSL-KNN
+Knn model to classify Peruvian Sign Language signs
