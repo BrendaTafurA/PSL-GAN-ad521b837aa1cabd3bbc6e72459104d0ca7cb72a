@@ -1,2 +1,2 @@
 # PSL-KNN
-Knn model to clasify Peruvian Sign Language signs
+Knn model to classify Peruvian Sign Language signs
