@@ -24,7 +24,7 @@ def parse_arguments_generate_dataset():
     ap.add_argument('-fl', '--faceLandmarks', default=False, action='store_true',
                     help='Get face landmarks')
 
-    ap.add_argument('-mf', '--minframes', type=int, default=10,
+    ap.add_argument('-mf', '--minframes', type=int, default=20,
                     help='Number of frames of each video')
 
     ap.add_argument('-mi', '--mininstances', type=int, default=10,

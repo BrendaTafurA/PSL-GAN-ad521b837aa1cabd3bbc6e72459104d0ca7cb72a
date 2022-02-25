@@ -97,7 +97,7 @@ class GenerateDataset:
 
 
     #def create_dataset(self, min_frames=10, min_instances=10, use_extra_joint=False):
-    def create_dataset(self, min_frames=10, use_extra_joint=False):
+    def create_dataset(self, min_frames=20, use_extra_joint=False):
         for video_folder_name in self.folder_list:
             video_folder_path = self.input_path + video_folder_name
             video_folder_list = [file for file in os.listdir(video_folder_path)]
@@ -238,7 +238,7 @@ class GenerateDataset:
                 print("Mediapipe couldnt get face landmarks")
 
     #se borró el min instances
-    def filter_data(self, data, min_frames=10):
+    def filter_data(self, data, min_frames=20):
         df = pd.DataFrame(data)  
 
         df['class'] = df['videoname'].apply(lambda x: x.split('_')[0])
@@ -364,7 +364,7 @@ if __name__ == "__main__":
     face_lm = args.faceLandmarks
     min_frames = args.minframes
     min_instances = args.mininstances
-    use_extra_joint = args.addExtraJoint
+    use_extra_joint = False
 
     set_seed(12345)
 
