@@ -97,7 +97,7 @@ class GenerateDataset:
 
 
     #def create_dataset(self, min_frames=10, min_instances=10, use_extra_joint=False):
-    def create_dataset(self, min_frames=20, use_extra_joint=False):
+    def create_dataset(self, min_frames=15, use_extra_joint=False):
         for video_folder_name in self.folder_list:
             video_folder_path = self.input_path + video_folder_name
             video_folder_list = [file for file in os.listdir(video_folder_path)]
@@ -147,7 +147,7 @@ class GenerateDataset:
         assert len(df_or) % (2 * min_frames * len(LIST_LANDMARKS)) == 0, "This shape is not correct"
 
         data_array = df_or['coordinate'].values.reshape((-1, 2, min_frames, len(LIST_LANDMARKS)))
-        df_or.to_csv("data.csv", header = True, index = False)
+        df_or.to_csv("data_15_new.csv", header = True, index = False)
 
         
         print("Saving h5 files")
@@ -238,7 +238,7 @@ class GenerateDataset:
                 print("Mediapipe couldnt get face landmarks")
 
     #se borró el min instances
-    def filter_data(self, data, min_frames=20):
+    def filter_data(self, data, min_frames=15):
         df = pd.DataFrame(data)  
 
         df['class'] = df['videoname'].apply(lambda x: x.split('_')[0])
