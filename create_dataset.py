@@ -19,7 +19,7 @@ import h5py
 from unidecode import unidecode
 
 # Local imports
-from parse_arguments import parse_arguments_generate_dataset
+from utils.parse_arguments import parse_arguments_generate_dataset
 
 
 #all the videos were resized to this
@@ -96,8 +96,8 @@ class GenerateDataset:
         return folder_list
 
 
-    #def create_dataset(self, min_frames=10, min_instances=10, use_extra_joint=False):
-    def create_dataset(self, min_frames=15, use_extra_joint=False):
+    def create_dataset(self, min_frames=10, min_instances=15, use_extra_joint=False):
+    #def create_dataset(self, min_frames=15, use_extra_joint=False):
         for video_folder_name in self.folder_list:
             video_folder_path = self.input_path + video_folder_name
             video_folder_list = [file for file in os.listdir(video_folder_path)]
@@ -115,12 +115,13 @@ class GenerateDataset:
                 "y": self.list_Y,
             }
 
-        #df_or = self.filter_data(data, min_frames=min_frames, min_instances=min_instances)
-        df_or = self.filter_data(data, min_frames=min_frames)
+        df_or = self.filter_data(data, min_frames=min_frames, min_instances=min_instances)
+        #df_or = self.filter_data(data, min_frames=min_frames)
         #checking
         assert df_or.groupby(["videoname", "n_frame"]).n_landmark.nunique().std()==0 , "Frames dont have the same number of landmarks"
         assert df_or.groupby("videoname").agg({"n_frame": "nunique"}).n_frame.nunique()==1 and df_or.groupby("videoname").agg({"n_frame": "nunique"}).n_frame.unique()[0]==min_frames, f"Videos were not subsampled to {min_frames} frames"
-        #assert df_or.groupby("class").agg({"videoname": "nunique"}).videoname.nunique()==1 and df_or.groupby("class").agg({"videoname": "nunique"}).videoname.unique()[0]==min_instances, f"Classes dont have the same number of instances ({min_instances})"
+        #esto se comentó para quitarle el min instancias pero luego se repuso para obtener con min_instances
+        assert df_or.groupby("class").agg({"videoname": "nunique"}).videoname.nunique()==1 and df_or.groupby("class").agg({"videoname": "nunique"}).videoname.unique()[0]==min_instances, f"Classes dont have the same number of instances ({min_instances})"
 
         # classes
         le = preprocessing.LabelEncoder()
@@ -147,12 +148,12 @@ class GenerateDataset:
         assert len(df_or) % (2 * min_frames * len(LIST_LANDMARKS)) == 0, "This shape is not correct"
 
         data_array = df_or['coordinate'].values.reshape((-1, 2, min_frames, len(LIST_LANDMARKS)))
-        df_or.to_csv("data_15_new.csv", header = True, index = False)
+        df_or.to_csv("data_10_frames_15_instances.csv", header = True, index = False)
 
         
         print("Saving h5 files")
-        #h5_file = h5py.File(f"data_{min_frames}_{min_instances}_{len(LIST_LANDMARKS)}.h5", 'w')
-        h5_file = h5py.File(f"data_{min_frames}_{len(LIST_LANDMARKS)}.h5", 'w')
+        h5_file = h5py.File(f"data_{min_frames}_{min_instances}_{len(LIST_LANDMARKS)}.h5", 'w')
+        #esto se comenta cuando se quita min_instances h5_file = h5py.File(f"data_{min_frames}_{len(LIST_LANDMARKS)}.h5", 'w')
 
         h5_file["data"] = data_array
         h5_file["labels"] = classes_array
@@ -238,7 +239,8 @@ class GenerateDataset:
                 print("Mediapipe couldnt get face landmarks")
 
     #se borró el min instances
-    def filter_data(self, data, min_frames=15):
+    #se puso de nuevo el min_instances
+    def filter_data(self, data, min_frames=15,  min_instances=15):
         df = pd.DataFrame(data)  
 
         df['class'] = df['videoname'].apply(lambda x: x.split('_')[0])
@@ -294,7 +296,9 @@ class GenerateDataset:
         df_or = df_or.join(df_or_class, on="class")
 
         df_or = df_or.loc[df_or["class"]!="NNN"].reset_index(drop=True)
-        '''
+
+        ####esto se comenta cuando se quiere quitar min instances
+        
         print()
         print(f"Filter: classes of at least {min_instances} instances")
         df_or = df_or.loc[df_or.n_instances>=min_instances].reset_index(drop=True)
@@ -314,8 +318,13 @@ class GenerateDataset:
         df_or = df_or.loc[df_or["instance_to_use?"]==True].reset_index(drop=True)
         print(f"Shape {df_or.shape} - N classes", df_or["class"].nunique(), 
             " - Number of videos", df_or["videoname"].nunique())
-        ###
-        '''
+       
+        
+
+        ####acá termina el comentario de arriba
+
+
+        #COMMENT IT
         # subsampling min_frames
         xd = df_or.groupby(["videoname", "n_frame"]).agg({"n_frames": "first"})
         xd['rate'] = xd['n_frames'].apply(lambda x: math.ceil(x/min_frames))
@@ -369,8 +378,8 @@ if __name__ == "__main__":
     set_seed(12345)
 
     gds = GenerateDataset(input_path, with_lf, lefthand_lm, righthand_lm, face_lm)
-    #gds.create_dataset(min_frames, min_instances, use_extra_joint)
-    gds.create_dataset(min_frames, use_extra_joint)
+    gds.create_dataset(min_frames, min_instances, use_extra_joint)
+    #esto se comenta cuando se quiere eliminar min instances gds.create_dataset(min_frames, use_extra_joint)
     ## 23 joins 
 
 

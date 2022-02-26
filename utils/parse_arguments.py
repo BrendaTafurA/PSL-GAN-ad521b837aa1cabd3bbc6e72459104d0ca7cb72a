@@ -27,7 +27,7 @@ def parse_arguments_generate_dataset():
     ap.add_argument('-mf', '--minframes', type=int, default=15,
                     help='Number of frames of each video')
 
-    ap.add_argument('-mi', '--mininstances', type=int, default=10,
+    ap.add_argument('-mi', '--mininstances', type=int, default=15,
                     help='Number of instances of each class')
 
     ap.add_argument('-aej', '--addExtraJoint', default=False, action='store_true',
