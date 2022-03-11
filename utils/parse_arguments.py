@@ -15,19 +15,19 @@ def parse_arguments_generate_dataset():
     ap.add_argument('-wlf', '--withLineFeature', default=False, action='store_true',
                     help="use line features")
 
-    ap.add_argument('-lhl', '--leftHandLandmarks', default=False, action='store_true',
+    ap.add_argument('-lhl', '--leftHandLandmarks', default=True, action='store_true',
                     help='Get left hand landmarks')
 
-    ap.add_argument('-rhl', '--rightHandLandmarks', default=False, action='store_true',
+    ap.add_argument('-rhl', '--rightHandLandmarks', default=True, action='store_true',
                     help='Get right hand landmarks')
 
     ap.add_argument('-fl', '--faceLandmarks', default=False, action='store_true',
                     help='Get face landmarks')
 
-    ap.add_argument('-mf', '--minframes', type=int, default=15,
+    ap.add_argument('-mf', '--minframes', type=int, default=10,
                     help='Number of frames of each video')
 
-    ap.add_argument('-mi', '--mininstances', type=int, default=15,
+    ap.add_argument('-mi', '--mininstances', type=int, default=10,
                     help='Number of instances of each class')
 
     ap.add_argument('-aej', '--addExtraJoint', default=False, action='store_true',

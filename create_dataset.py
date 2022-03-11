@@ -29,7 +29,15 @@ WIDTH = HEIGHT = 220
 # see ->  https://google.github.io/mediapipe/solutions/pose.html
 LIST_LANDMARKS = [0, 1, 2, 3, 4, 5, 6, 7,
                  8, 9, 10, 11, 12, 13, 14,
-                 15, 16, 17, 18, 19, 20, 21, 22]  #23
+                 15,16,17,18,19,20,21,22 ,
+
+                 23,24,25,26,27,28,29,30,
+                31,32,33,34,35,36,37,38,39,40,41,
+                42,43,
+                
+                44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64
+                
+                 ]  #23   + 42 
 
 FINAL_COLUMNS = ["videoname", "axis", "n_frame", "n_landmark", "coordinate"]
 
@@ -96,7 +104,7 @@ class GenerateDataset:
         return folder_list
 
 
-    def create_dataset(self, min_frames=10, min_instances=15, use_extra_joint=False):
+    def create_dataset(self, min_frames=10, min_instances=10, use_extra_joint=False):
     #def create_dataset(self, min_frames=15, use_extra_joint=False):
         for video_folder_name in self.folder_list:
             video_folder_path = self.input_path + video_folder_name
@@ -148,7 +156,7 @@ class GenerateDataset:
         assert len(df_or) % (2 * min_frames * len(LIST_LANDMARKS)) == 0, "This shape is not correct"
 
         data_array = df_or['coordinate'].values.reshape((-1, 2, min_frames, len(LIST_LANDMARKS)))
-        df_or.to_csv("data_10_frames_15_instances.csv", header = True, index = False)
+        df_or.to_csv("data_10_frames_10_instances_with_fingers.csv", header = True, index = False)
 
         
         print("Saving h5 files")
@@ -203,6 +211,7 @@ class GenerateDataset:
             self.list_pos.append(posi)
 
         # Left hand
+        count_lefthand = 0
         if self.lefthand_lm:
             if(holisResults.left_hand_landmarks):
                 for posi, data_point in enumerate(holisResults.left_hand_landmarks.landmark):
@@ -212,9 +221,18 @@ class GenerateDataset:
                     self.list_Y.append(data_point.y)
                     self.list_pos.append(posi)
             else:
-                print("Mediapipe couldnt get left hand landmarks")
+                # se comentó for _ in range(0, 21): # 21 is the number of points taken in hands model
+                for _ in range(23, 44):
+                    self.list_videoname.append(video_file[:-4])
+                    self.list_frames.append(idx)
 
+                    self.list_X.append(1.0)
+                    self.list_Y.append(1.0)
+
+                    self.list_pos.append(_)
+                        
         # Right hand
+        count_righthand = 0
         if self.righthand_lm:
             if(holisResults.right_hand_landmarks):
                 for posi, data_point in enumerate(holisResults.right_hand_landmarks.landmark):
@@ -224,7 +242,15 @@ class GenerateDataset:
                     self.list_Y.append(data_point.y)
                     self.list_pos.append(posi)
             else:
-                print("Mediapipe couldnt get right hand landmarks")
+                for _ in range(44, 65):
+                    self.list_videoname.append(video_file[:-4])
+                    self.list_frames.append(idx)
+
+                    self.list_X.append(1.0)
+                    self.list_Y.append(1.0)
+
+                    self.list_pos.append(_)
+                        
 
         # Face mesh
         if self.face_lm:
@@ -240,19 +266,28 @@ class GenerateDataset:
 
     #se borró el min instances
     #se puso de nuevo el min_instances
-    def filter_data(self, data, min_frames=15,  min_instances=15):
+    def filter_data(self, data, min_frames=10,  min_instances=10):
         df = pd.DataFrame(data)  
 
+        df['videoname'] = df['videoname'].apply(lambda x: x.strip())
         df['class'] = df['videoname'].apply(lambda x: x.split('_')[0])
         df['number'] = df['videoname'].apply(lambda x: x.split('_')[1])
         df['out_range?'] = (df['x']*WIDTH > WIDTH) | (df['y']*HEIGHT > HEIGHT)
 
-        df_or = df.loc[df['out_range?']==False, :].reset_index(drop=True)
+        # tú estás agrrando incluso los que están fuera delout of range, y eso no está bien, solo deberias agarrar los q están dentrp
+        # se cambió de df_or = df.loc[df['out_range?']==False, :].reset_index(drop=True) a:
+        df_or = df.loc[df['out_range?']==False, :].reset_index()
 
+        #se cambió de 
         df_flag_lm = df_or.groupby(['videoname', 'n_frame', 'n_landmark']).x.count().unstack()
-        df_flag_lm["have_landmarks?"] = df_flag_lm[LIST_LANDMARKS].sum(1) == len(LIST_LANDMARKS)
 
+        df_flag_lm["have_landmarks?"] = df_flag_lm[LIST_LANDMARKS].sum(1) == len(LIST_LANDMARKS)
+        #se comentó df_flag_lm["have_landmarks?"] = df_flag_lm[LIST_LANDMARKS].sum(1) == 64
+
+       
+        
         df_check1 = df_flag_lm[df_flag_lm["have_landmarks?"]==True].reset_index().groupby("videoname").agg({"n_frame": ["sum", "max"]})
+
         df_check1.columns = [ x[0] + "_" + x[1] for x in df_check1.columns]
         df_check1["all_frames?"] = df_check1["n_frame_sum"] == df_check1["n_frame_max"]*(df_check1["n_frame_max"]+1)/2
 
@@ -273,7 +308,7 @@ class GenerateDataset:
 
         print()
         print("Filter: frames that have all landmarks")
-        df_or = df_or.loc[df_or["have_landmarks?"]]
+        #se comentó df_or = df_or.loc[df_or["have_landmarks?"]]
         print(f"Shape {df_or.shape} - N classes", df_or["class"].nunique(), 
             " - Number of videos", df_or["videoname"].nunique())
 
@@ -325,6 +360,9 @@ class GenerateDataset:
 
 
         #COMMENT IT
+
+
+        
         # subsampling min_frames
         xd = df_or.groupby(["videoname", "n_frame"]).agg({"n_frames": "first"})
         xd['rate'] = xd['n_frames'].apply(lambda x: math.ceil(x/min_frames))
