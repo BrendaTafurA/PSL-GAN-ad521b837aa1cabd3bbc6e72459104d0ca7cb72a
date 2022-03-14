@@ -1,6 +1,6 @@
 import os
 import sys
-sys.path.insert(0, os.path.abspath('C:/Users/BRENDA/Documents/SOTA/KNN/PSL-GAN-ad521b837aa1cabd3bbc6e72459104d0ca7cb72a/utils'))
+sys.path.insert(0, os.path.abspath('C:/PSL_KNN/utils'))
 
 # Standard library imports
 import argparse
@@ -32,10 +32,13 @@ LIST_LANDMARKS = [0, 1, 2, 3, 4, 5, 6, 7,
                  15,16,17,18,19,20,21,22 ,
 
                  23,24,25,26,27,28,29,30,
-                31,32,33,34,35,36,37,38,39,40,41,
+                31,32,
+                
+                33,34,35,36,37,38,39,40,41,
                 42,43,
                 
-                44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64
+                44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,
+                65,66,67,68,69,70,71,72,73,74
                 
                  ]  #23   + 42 
 
@@ -104,7 +107,7 @@ class GenerateDataset:
         return folder_list
 
 
-    def create_dataset(self, min_frames=10, min_instances=10, use_extra_joint=False):
+    def create_dataset(self, min_frames=15, min_instances=10, use_extra_joint=False):
     #def create_dataset(self, min_frames=15, use_extra_joint=False):
         for video_folder_name in self.folder_list:
             video_folder_path = self.input_path + video_folder_name
@@ -156,7 +159,7 @@ class GenerateDataset:
         assert len(df_or) % (2 * min_frames * len(LIST_LANDMARKS)) == 0, "This shape is not correct"
 
         data_array = df_or['coordinate'].values.reshape((-1, 2, min_frames, len(LIST_LANDMARKS)))
-        df_or.to_csv("data_10_frames_10_instances_with_fingers.csv", header = True, index = False)
+        df_or.to_csv("data_15_frames_10_instances_with_fingers_bk.csv", header = True, index = False)
 
         
         print("Saving h5 files")
@@ -203,18 +206,33 @@ class GenerateDataset:
         holisResults = self.holistic.process(imageBGR)
 
         # POSE
-        for posi, data_point in enumerate(holisResults.pose_landmarks.landmark):
-            self.list_videoname.append(video_file[:-4])
-            self.list_frames.append(idx)
-            self.list_X.append(data_point.x)
-            self.list_Y.append(data_point.y)
-            self.list_pos.append(posi)
+
+        if(holisResults.pose_landmarks):
+            for posi, data_point in enumerate(holisResults.pose_landmarks.landmark):
+                self.list_videoname.append(video_file[:-4])
+                self.list_frames.append(idx)
+                self.list_X.append(data_point.x)
+                self.list_Y.append(data_point.y)
+                self.list_pos.append(posi)
+
+        #se agregó:
+
+        else:
+                # se comentó for _ in range(0, 21): # 21 is the number of points taken in hands model
+                for _ in range(33, 54):
+                    self.list_videoname.append(video_file[:-4])
+                    self.list_frames.append(idx)
+
+                    self.list_X.append(1.0)
+                    self.list_Y.append(1.0)
+
+                    self.list_pos.append(_)
 
         # Left hand
         count_lefthand = 0
         if self.lefthand_lm:
             if(holisResults.left_hand_landmarks):
-                for posi, data_point in enumerate(holisResults.left_hand_landmarks.landmark):
+                for posi, data_point in enumerate(holisResults.left_hand_landmarks.landmark, start = 33):
                     self.list_videoname.append(video_file[:-4])
                     self.list_frames.append(idx)
                     self.list_X.append(data_point.x)
@@ -222,7 +240,7 @@ class GenerateDataset:
                     self.list_pos.append(posi)
             else:
                 # se comentó for _ in range(0, 21): # 21 is the number of points taken in hands model
-                for _ in range(23, 44):
+                for _ in range(33, 54):
                     self.list_videoname.append(video_file[:-4])
                     self.list_frames.append(idx)
 
@@ -235,14 +253,14 @@ class GenerateDataset:
         count_righthand = 0
         if self.righthand_lm:
             if(holisResults.right_hand_landmarks):
-                for posi, data_point in enumerate(holisResults.right_hand_landmarks.landmark):
+                for posi, data_point in enumerate(holisResults.right_hand_landmarks.landmark, start=54):
                     self.list_videoname.append(video_file[:-4])
                     self.list_frames.append(idx)
                     self.list_X.append(data_point.x)
                     self.list_Y.append(data_point.y)
                     self.list_pos.append(posi)
             else:
-                for _ in range(44, 65):
+                for _ in range(54, 75):
                     self.list_videoname.append(video_file[:-4])
                     self.list_frames.append(idx)
 
@@ -266,22 +284,34 @@ class GenerateDataset:
 
     #se borró el min instances
     #se puso de nuevo el min_instances
-    def filter_data(self, data, min_frames=10,  min_instances=10):
+    def filter_data(self, data, min_frames=15,  min_instances=10):
+        ''' se comentó:
         df = pd.DataFrame(data)  
 
         df['videoname'] = df['videoname'].apply(lambda x: x.strip())
         df['class'] = df['videoname'].apply(lambda x: x.split('_')[0])
         df['number'] = df['videoname'].apply(lambda x: x.split('_')[1])
-        df['out_range?'] = (df['x']*WIDTH > WIDTH) | (df['y']*HEIGHT > HEIGHT)
+        '''
+        #se agregó:
+        df_or = pd.DataFrame(data)
+        print(df_or)  
+
+        df_or['videoname'] = df_or['videoname'].apply(lambda x: x.strip())
+        df_or['class'] = df_or['videoname'].apply(lambda x: x.split('_')[0])
+        df_or['number'] = df_or['videoname'].apply(lambda x: x.split('_')[1])
+        
+      
+        #se comentó df['out_range?'] = (df['x']*WIDTH > WIDTH) | (df['y']*HEIGHT > HEIGHT)
 
         # tú estás agrrando incluso los que están fuera delout of range, y eso no está bien, solo deberias agarrar los q están dentrp
         # se cambió de df_or = df.loc[df['out_range?']==False, :].reset_index(drop=True) a:
-        df_or = df.loc[df['out_range?']==False, :].reset_index()
 
         #se cambió de 
         df_flag_lm = df_or.groupby(['videoname', 'n_frame', 'n_landmark']).x.count().unstack()
+        print(df_flag_lm.shape)
 
-        df_flag_lm["have_landmarks?"] = df_flag_lm[LIST_LANDMARKS].sum(1) == len(LIST_LANDMARKS)
+        #se cambió de df_flag_lm["have_landmarks?"] = df_flag_lm[LIST_LANDMARKS].sum(1) == len(LIST_LANDMARKS) a:
+        df_flag_lm["have_landmarks?"] = df_flag_lm[LIST_LANDMARKS].sum(1) == 75
         #se comentó df_flag_lm["have_landmarks?"] = df_flag_lm[LIST_LANDMARKS].sum(1) == 64
 
        
@@ -308,13 +338,13 @@ class GenerateDataset:
 
         print()
         print("Filter: frames that have all landmarks")
-        #se comentó df_or = df_or.loc[df_or["have_landmarks?"]]
+        df_or = df_or.loc[df_or["have_landmarks?"] == True]
         print(f"Shape {df_or.shape} - N classes", df_or["class"].nunique(), 
             " - Number of videos", df_or["videoname"].nunique())
 
         print()
         print("Filter: videos which all frames have those landmarks")
-        df_or = df_or.loc[df_or["all_frames?"]]
+        df_or = df_or.loc[df_or["all_frames?"] == True ]
         print(f"Shape {df_or.shape} - N classes", df_or["class"].nunique(), 
             " - Number of videos", df_or["videoname"].nunique())
 
