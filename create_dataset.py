@@ -107,7 +107,7 @@ class GenerateDataset:
         return folder_list
 
 
-    def create_dataset(self, min_frames=15, min_instances=10, use_extra_joint=False):
+    def create_dataset(self, min_frames=10, min_instances=10, use_extra_joint=False):
     #def create_dataset(self, min_frames=15, use_extra_joint=False):
         for video_folder_name in self.folder_list:
             video_folder_path = self.input_path + video_folder_name
@@ -143,6 +143,8 @@ class GenerateDataset:
 
         assert len(classes_array) == len(name_classes_array), "There is a problem with label encoder"
 
+        df_or.to_csv("data_10_frames_10_instances_with_fingers_shaping.csv", header = True, index = False)
+
         #reshaping
         df_or = df_or.set_index(["videoname", "n_frame", "n_landmark"])[["x", "y"]].stack().reset_index()
         df_or.rename(columns={"level_3": "axis", 0: "coordinate"}, inplace=True)
@@ -159,7 +161,7 @@ class GenerateDataset:
         assert len(df_or) % (2 * min_frames * len(LIST_LANDMARKS)) == 0, "This shape is not correct"
 
         data_array = df_or['coordinate'].values.reshape((-1, 2, min_frames, len(LIST_LANDMARKS)))
-        df_or.to_csv("data_15_frames_10_instances_with_fingers_bk.csv", header = True, index = False)
+        df_or.to_csv("data_10_frames_10_instances_with_fingers_bk_1.csv", header = True, index = False)
 
         
         print("Saving h5 files")
@@ -174,7 +176,6 @@ class GenerateDataset:
             
         return
 
-    
     def process_video(self, video_file, video_folder_path):
         print("processing " + video_file.split('.')[0])
         video_seg_folder_name = video_folder_path+'/'+video_file.split('.')[0]
@@ -268,7 +269,6 @@ class GenerateDataset:
                     self.list_Y.append(1.0)
 
                     self.list_pos.append(_)
-                        
 
         # Face mesh
         if self.face_lm:
@@ -284,38 +284,24 @@ class GenerateDataset:
 
     #se borró el min instances
     #se puso de nuevo el min_instances
-    def filter_data(self, data, min_frames=15,  min_instances=10):
-        ''' se comentó:
-        df = pd.DataFrame(data)  
-
-        df['videoname'] = df['videoname'].apply(lambda x: x.strip())
-        df['class'] = df['videoname'].apply(lambda x: x.split('_')[0])
-        df['number'] = df['videoname'].apply(lambda x: x.split('_')[1])
-        '''
-        #se agregó:
+    def filter_data(self, data, min_frames=10,  min_instances=10):
+        
         df_or = pd.DataFrame(data)
         print(df_or)  
 
         df_or['videoname'] = df_or['videoname'].apply(lambda x: x.strip())
         df_or['class'] = df_or['videoname'].apply(lambda x: x.split('_')[0])
         df_or['number'] = df_or['videoname'].apply(lambda x: x.split('_')[1])
-        
-      
-        #se comentó df['out_range?'] = (df['x']*WIDTH > WIDTH) | (df['y']*HEIGHT > HEIGHT)
-
-        # tú estás agrrando incluso los que están fuera delout of range, y eso no está bien, solo deberias agarrar los q están dentrp
-        # se cambió de df_or = df.loc[df['out_range?']==False, :].reset_index(drop=True) a:
+    
 
         #se cambió de 
         df_flag_lm = df_or.groupby(['videoname', 'n_frame', 'n_landmark']).x.count().unstack()
         print(df_flag_lm.shape)
 
-        #se cambió de df_flag_lm["have_landmarks?"] = df_flag_lm[LIST_LANDMARKS].sum(1) == len(LIST_LANDMARKS) a:
+ 
         df_flag_lm["have_landmarks?"] = df_flag_lm[LIST_LANDMARKS].sum(1) == 75
-        #se comentó df_flag_lm["have_landmarks?"] = df_flag_lm[LIST_LANDMARKS].sum(1) == 64
 
-       
-        
+
         df_check1 = df_flag_lm[df_flag_lm["have_landmarks?"]==True].reset_index().groupby("videoname").agg({"n_frame": ["sum", "max"]})
 
         df_check1.columns = [ x[0] + "_" + x[1] for x in df_check1.columns]
@@ -362,7 +348,7 @@ class GenerateDataset:
 
         df_or = df_or.loc[df_or["class"]!="NNN"].reset_index(drop=True)
 
-        ####esto se comenta cuando se quiere quitar min instances
+
         
         print()
         print(f"Filter: classes of at least {min_instances} instances")
@@ -384,15 +370,15 @@ class GenerateDataset:
         print(f"Shape {df_or.shape} - N classes", df_or["class"].nunique(), 
             " - Number of videos", df_or["videoname"].nunique())
        
-        
+     
+        '''
+        The number of frames was divided by the minimum number of frames and the higher integer was taken. This was called "rate".
+        Then it is evaluated if it is a valid frame. Thus, it goes for each frame number. For example, if the rate is 3, it goes from 0 to 3. 
+        Likewise, if the rate is a multiple of 10, the division would be exact, that is, it will reach 10.
+        But if it is not a multiple of 10, then it is evaluated by "missing_frames", which does the following: missing_frames, is the minimum amount of frames plus what you have already recovered. 
+        From there it divides the middle, and takes out the left and right to take the 10 frames.
+        '''
 
-        ####acá termina el comentario de arriba
-
-
-        #COMMENT IT
-
-
-        
         # subsampling min_frames
         xd = df_or.groupby(["videoname", "n_frame"]).agg({"n_frames": "first"})
         xd['rate'] = xd['n_frames'].apply(lambda x: math.ceil(x/min_frames))
@@ -447,10 +433,7 @@ if __name__ == "__main__":
 
     gds = GenerateDataset(input_path, with_lf, lefthand_lm, righthand_lm, face_lm)
     gds.create_dataset(min_frames, min_instances, use_extra_joint)
-    #esto se comenta cuando se quiere eliminar min instances gds.create_dataset(min_frames, use_extra_joint)
-    ## 23 joins 
+   
 
-
-    #feature array -> 23 * #clases * 10 * 2 = resultado
-
+    
     
