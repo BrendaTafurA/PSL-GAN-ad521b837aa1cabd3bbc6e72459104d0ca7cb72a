@@ -284,6 +284,8 @@ class GenerateDataset:
 
     #se borró el min instances
     #se puso de nuevo el min_instances
+    #mins_instances = 2
+    #min_frames = 10
     def filter_data(self, data, min_frames=10,  min_instances=10):
         
         df_or = pd.DataFrame(data)
@@ -298,13 +300,15 @@ class GenerateDataset:
         df_flag_lm = df_or.groupby(['videoname', 'n_frame', 'n_landmark']).x.count().unstack()
         print(df_flag_lm.shape)
 
- 
+
         df_flag_lm["have_landmarks?"] = df_flag_lm[LIST_LANDMARKS].sum(1) == 75
 
 
         df_check1 = df_flag_lm[df_flag_lm["have_landmarks?"]==True].reset_index().groupby("videoname").agg({"n_frame": ["sum", "max"]})
 
         df_check1.columns = [ x[0] + "_" + x[1] for x in df_check1.columns]
+        
+        #
         df_check1["all_frames?"] = df_check1["n_frame_sum"] == df_check1["n_frame_max"]*(df_check1["n_frame_max"]+1)/2
 
         df_or = df_or.join(df_flag_lm["have_landmarks?"], on=["videoname", "n_frame"])
@@ -359,6 +363,8 @@ class GenerateDataset:
 
 
         ### UNDERSAMPLING TO HAVE THE SAME NUMBER OF INSTANCES OF EACH CLASS
+        ##no tomar de 364 a 377
+
         gg = df_or.groupby(["class", "videoname"]).n_instances.unique().reset_index()
         gg  = gg.groupby('class').apply(lambda x: x.sample(min_instances))
         gg["instance_to_use?"] = True
@@ -380,6 +386,7 @@ class GenerateDataset:
         '''
 
         # subsampling min_frames
+        #toma exactamente 10 frames de todos los videos
         xd = df_or.groupby(["videoname", "n_frame"]).agg({"n_frames": "first"})
         xd['rate'] = xd['n_frames'].apply(lambda x: math.ceil(x/min_frames))
         xd = xd.reset_index()
@@ -415,6 +422,11 @@ class GenerateDataset:
             " - Number of videos", df_or["videoname"].nunique())
 
         return df_or
+
+        ##frame completion, 20% 
+        #si tienes 10, máximo te pueden faltar 2 
+        
+
 
 
 if __name__ == "__main__":
